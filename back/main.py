@@ -1,25 +1,19 @@
+# -------------- API -------------- #
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, HTTPException
 import uvicorn
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
+# ------------ API end ------------ #
+
 
 # -------------- predict -------------- #
 import pandas as pd
 import numpy as np
 import joblib
 
-from do_models import *
-from preprocessing_file import *
+from utils import *
 # ------------ predict end ------------ #
-
-
-# --------- test ------------#
-
-from test_file import my_predict, preprocessing
-
-# --------- test end --------- #
 
 
 ML_tools = {
@@ -41,11 +35,7 @@ async def lifespan(app : FastAPI):
     yield
     ML_tools.clear()
 
-
 app = FastAPI(lifespan=lifespan) 
-
-
-# ------------------ deploy ------------------------- #
 
 class UserSchema(BaseModel):
     id: int
@@ -275,7 +265,6 @@ class UserSchema(BaseModel):
 
     model_config = ConfigDict(extra='ignore')
 
-users : list[UserSchema] = []
 
 def total_predict(data: pd.DataFrame) -> Optional[float]:
     return (ML_tools["ratio"] * ML_tools["model_lgbm"].predict(data) + ML_tools["ratio"] * ML_tools["model_xgb"].predict(data))
@@ -290,38 +279,6 @@ def predict(data: UserSchema):
     pred = total_predict(df)
 
     return {"prediction": pred[0]}
-
-
-
-# ------------------ tests --------------------------#
-"""
-{
-    "x1": 0.166973,
-    "x2": 0.315929
-}
-Name: 83, dtype: Optional[float]64
-y_pred: 227.64602006271295
-y_test: 605.5955350212773
-"""
-
-
-tests = []
-
-class TestSchema(BaseModel):
-    x1: float
-    x2: float
-
-@app.post("/tests", summary="Ручка тестово залить данные", tags=["Тесты"])
-def do_test(test: UserSchema):
-
-    df = pd.DataFrame([test.model_dump()])
-    model = ML_tools["model"]
-
-    df = preprocessing(df)
-    y_pred = my_predict(model, df)[0]
-
-    return {"result": y_pred}
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", reload=True)

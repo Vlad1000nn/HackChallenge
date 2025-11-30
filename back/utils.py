@@ -1,12 +1,53 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from sklearn.preprocessing import StandardScaler, FunctionTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
+# ----------- Needed defines ----------- #
 
+def cosine_lr(iter, max_iter=1061):
+    min_lr = 0.0005
+    max_lr = 0.1
+    lr = min_lr + .5 * (max_lr - min_lr) * (1 + np.cos((iter / max_iter) * np.pi))
+
+    return lr
+
+def lgbm_cosine_lr_callback(env):
+        """
+        Callback для изменения learning rate в LightGBM по косинусному расписанию.
+        """
+        iteration = env.iteration
+        new_lr = cosine_lr(iteration, max_iter=env.end_iteration) # env.end_iteration - общее число деревьев
+        env.model.params['learning_rate'] = new_lr
+
+# --------- Needed defines end --------- #
+
+
+def clear_read(path : str):
+
+    def real_norm_number(x):
+        if isinstance(x, str) and x.find('.') != -1:
+            return float(x) if all([s.isdigit() for s in x.replace('-', '').split('.')]) else x
+        else:
+            return x
+
+
+    train = pd.read_csv(path, sep=';', decimal=',')
+    test = pd.read_csv(path, sep=';', decimal=',')
+
+    for cols in train.select_dtypes(include=['object']).columns:
+        train[cols] = train[cols].apply(real_norm_number)
+
+    for cols in test.select_dtypes(include=['object']).columns:
+        test[cols] = test[cols].apply(real_norm_number)
+
+
+    return train, test
+
+# ------------- Preprocessing ------------- #
 
 def drop_cols(X : pd.DataFrame, cols):
     X = X.copy()
@@ -154,3 +195,4 @@ def preprocess_data(train: pd.DataFrame, test: pd.DataFrame, SEED=111379):
     test_processed = preprocessor.transform(test_data)
     
     return train_processed, test_processed, target, w
+
