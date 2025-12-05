@@ -26,7 +26,7 @@ ML_tools = {
 @asynccontextmanager
 async def lifespan(app : FastAPI):
     try:
-        ld = joblib.load('/home/vlados/alphaproject/back/models/model_weights.joblib')
+        ld = joblib.load('D:/Progi/Python/alphaproject/back/models/model_weights.joblib')
         ML_tools["model_xgb"] = ld['model_xgb']
         ML_tools["model_lgbm"] = ld['model_lgbm']
         ML_tools["preprocessing"] = ld['processing_pipeline']
